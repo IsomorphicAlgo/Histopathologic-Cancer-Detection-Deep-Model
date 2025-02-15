@@ -1,0 +1,5 @@
+histopathologic-cancer-detection/
+histopathologic-cancer-detection.zip/
+.venv
+test/
+train/
