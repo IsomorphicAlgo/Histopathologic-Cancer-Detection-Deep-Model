@@ -62,11 +62,19 @@ The final model architecture includes:
 - The model demonstrates strong potential for assisting pathologists in cancer detection
 
 ## Conclusion
-This project demonstrates the power of deep learning in medical image analysis. The developed CNN model successfully identifies cancer in histopathologic images with high accuracy, showing potential for real-world applications in assisting medical professionals with cancer diagnosis.
+This project demonstrates the power of deep learning in medical image analysis. The developed CNN model successfully identifies cancer in histopathologic images with high accuracy, showing the clear potential for real-world applications in assisting medical professionals with cancer diagnosis.
 
-The implementation of advanced techniques like data augmentation, batch normalization, and learning rate scheduling proved crucial in achieving robust performance. Future work could explore ensemble methods, more complex architectures, or transfer learning approaches to further improve accuracy.
+The implementation of advanced techniques like data augmentation, batch normalization, and learning rate scheduling proved crucial in achieving robust performance. Future work could explore ensemble methods, more complex architectures, or transfer learning approaches to further improve accuracy.One could also expand on the applications within the medical field as well, as imagry is used in a wide range of diagnosis methods. 
 
 ## References
 - VGG-16 CNN Model: https://www.geeksforgeeks.org/vgg-16-cnn-model/
 - Kaggle Competition: https://www.kaggle.com/competitions/histopathologic-cancer-detection/data
 - TCGA Project: https://portal.gdc.cancer.gov/projects/TCGA-BRCA 
+
+
+## Changelog
+05-24-2026
+- Updated ReadME.
+- Altered filestructure so there is a /Data folder.
+   - Inserted the CSVs and Excel docs there. 
+   - Corrected filepaths within the ipynb

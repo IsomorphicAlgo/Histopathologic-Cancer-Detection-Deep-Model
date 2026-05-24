@@ -1,5 +1,15 @@
 histopathologic-cancer-detection/
+histopathologic-cancer-detection.zip
 histopathologic-cancer-detection.zip/
+# Full competition archives — keep local only (GitHub block / push timeouts)
+Data/histopathologic-cancer-detection.zip
+*.zip
 .venv
-test/
+
+# Kaggle image folders (very large)
 train/
+test/
+data/train/
+data/test/
+Data/train/
+Data/test/
