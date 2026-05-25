@@ -20,7 +20,105 @@ This work started in **DTSA5511 Deep Learning** (Instructor: Dr. Ying Sun) as a 
 
 Ideas  to try next (hypotheses, architectures, data tweaks, hyperparameters, etc.).
 
-- **data augmentation**, **L2 regularization**, and **callbacks** 
+- **data augmentation**, **L2 regularization**, and **callbacks**
+
+### Lowdown — how to implement
+
+#### L2 regularization (weight decay)
+
+**The idea.** Add a penalty proportional to the squared magnitude of the weights to the loss. The optimizer is then pushed to prefer smaller weights, which tends to produce smoother decision boundaries and reduces overfitting.
+
+**Where it lives in Keras.** It's a per-layer constructor argument: `kernel_regularizer=l2(lambda)`. There's no model-wide switch — you sprinkle it onto every layer that has learnable weights (every `Conv2D`, every `Dense`, optionally `BatchNormalization`'s `gamma/beta`).
+
+```python
+from tensorflow.keras.regularizers import l2
+
+L2 = 1e-3  # the only knob you really tune
+
+x = Conv2D(64, (3, 3),
+           kernel_regularizer=l2(L2),
+           kernel_initializer='he_normal')(x)
+# ...
+x = Dense(256, kernel_regularizer=l2(L2))(x)
+```
+
+**What to watch.**
+- **`lambda` (the strength).** Start at **`1e-4`** for a small model, **`1e-3`** for a deeper one. Bigger λ → stronger pull toward zero → more underfitting risk. Tune in factors of 10.
+- **Apply it everywhere or nowhere.** If half your layers have it and half don't, the regularized layers carry an unfair share of the penalty and learning gets weird.
+- **It only affects training.** No code changes at inference time — `model.predict` ignores regularizer terms.
+- **`model.compile(..., loss=...)` reports the combined loss** (data loss + L2 penalty), so don't be surprised if your *training* loss is a bit higher than validation loss in the first few epochs — validation loss doesn't include the penalty.
+- **Don't double-regularize.** If you already use heavy Dropout + BatchNorm, an aggressive L2 on top can stall learning. Treat the three as a budget you spend together.
+- **Bias terms.** Use `bias_regularizer=l2(...)` only if you have a specific reason; the standard recipe is "regularize kernels, leave biases alone."
+
+**How you'll know it's working.** The train/val accuracy gap should shrink (less overfitting). If your train accuracy also drops noticeably, λ is too large.
+
+---
+
+#### Data augmentation
+
+**The idea.** Apply random label-preserving transforms (flips, rotations, shifts, zooms, brightness/contrast jitter, etc.) to each training image on the fly. The model sees a slightly different version of every patch every epoch, so it has to learn the *content* instead of memorizing pixel positions.
+
+**Why it's basically free for this task.** Histopathology patches have no preferred orientation — a tumor rotated 90° is still a tumor — so flips/rotations are guaranteed not to change the label. That makes augmentation here much safer than, say, on natural images of text or faces.
+
+**Where it lives in Keras.** Two reasonable ways:
+
+1. **`ImageDataGenerator` + `flow_from_dataframe`** (what V4 uses, classic API):
+
+   ```python
+   from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+   train_gen = ImageDataGenerator(
+       rescale=1./255,          # normalize pixel range
+       rotation_range=20,       # degrees
+       width_shift_range=0.2,   # fraction of width
+       height_shift_range=0.2,
+       shear_range=0.2,
+       zoom_range=0.2,
+       horizontal_flip=True,
+       vertical_flip=True,      # safe for pathology
+       fill_mode='nearest',
+   )
+   val_gen = ImageDataGenerator(rescale=1./255)  # no augmentation on val/test
+   ```
+
+2. **`tf.keras.layers.*` preprocessing layers** (newer, runs on GPU, baked into the model):
+
+   ```python
+   aug = tf.keras.Sequential([
+       tf.keras.layers.RandomFlip('horizontal_and_vertical'),
+       tf.keras.layers.RandomRotation(0.1),
+       tf.keras.layers.RandomZoom(0.2),
+   ])
+   inputs = Input(shape=(96, 96, 3))
+   x = aug(inputs)             # only active during training
+   x = tf.keras.layers.Rescaling(1./255)(x)
+   # ...rest of the model
+   ```
+
+   This second style is nicer because the model file *contains* the preprocessing — no risk of forgetting to normalize at inference.
+
+**What to watch.**
+- **Augment training only, never validation or test.** The val/test pipeline should do *exactly* the same deterministic preprocessing the model expects (here: `BGR→RGB` + `/255`) and nothing else. If you augment validation you can't compare runs.
+- **Train/inference preprocessing parity.** This is the bug that bit V3. Whatever the training generator does (e.g. `rescale=1./255`), the submission code must do the same. If you go with preprocessing layers (`Rescaling`, `RandomFlip`, etc.), this is automatic.
+- **Pick augmentations that preserve the label.** Flips and rotations: yes. Heavy color jitter or huge crops: think twice — they can move tumor pixels out of the central 32×32 region the label is defined on.
+- **Augmentation makes each epoch "easier" for the network to overfit but harder to *fit*.** Expect training accuracy to plateau lower and val accuracy to track training more closely. That gap-closing is the goal.
+- **Each epoch sees ~`steps_per_epoch * batch_size` augmented samples.** With augmentation on you generally want **more epochs**, not fewer, because the effective dataset is larger.
+- **Inspect what you're feeding the model.** Always pull one batch out of the generator and `plt.imshow` a few — augmentation bugs (wrong color channel, all-black images, label/image desync) are obvious visually and silent in metrics.
+
+**How you'll know it's working.** The train/val gap shrinks (same signal as L2). If val accuracy *drops*, your augmentations are too aggressive — pull `rotation_range`, `zoom_range`, etc. down.
+
+---
+
+### Suggested first experiment for the new notebook
+
+A clean baseline → ablate plan you can drop into the trial log below:
+
+1. **Baseline:** the V3 model with no augmentation, no L2. Train ~5 epochs. Note train acc, val acc, and the gap.
+2. **+ L2 only:** add `kernel_regularizer=l2(1e-3)` to every conv + dense. Same epochs. Compare the gap.
+3. **+ augmentation only:** baseline model, but feed it through `ImageDataGenerator` with the recipe above. Same epochs.
+4. **+ both** (what V4 does). Same epochs.
+
+That gives you four rows in the trial-log table and an honest answer to "did each piece actually help?"
 
 ---
 
