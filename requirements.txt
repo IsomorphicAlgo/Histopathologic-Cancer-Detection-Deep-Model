@@ -1,0 +1,11 @@
+# Histopathologic Cancer Detection — V4 notebook
+# Install: py -3 -m pip install -r requirements.txt
+tensorflow>=2.20
+opencv-python
+pandas
+numpy
+matplotlib
+tqdm
+scikit-learn
+jupyter
+ipykernel
