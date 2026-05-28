@@ -20,6 +20,10 @@ This work started in **DTSA5511 Deep Learning** (Instructor: Dr. Ying Sun) as a 
 
 Ideas  to try next (hypotheses, architectures, data tweaks, hyperparameters, etc.).
 
+### New Neural Structure
+
+#### Swapping to more well-researched structures (DenseNet)
+
 - **data augmentation**, **L2 regularization**, and **callbacks**
 
 ### Lowdown — how to implement
@@ -28,12 +32,12 @@ Ideas  to try next (hypotheses, architectures, data tweaks, hyperparameters, etc
 
 **The idea.** Add a penalty proportional to the squared magnitude of the weights to the loss. The optimizer is then pushed to prefer smaller weights, which tends to produce smoother decision boundaries and reduces overfitting.
 
-**Where it lives in Keras.** It's a per-layer constructor argument: `kernel_regularizer=l2(lambda)`. There's no model-wide switch — you sprinkle it onto every layer that has learnable weights (every `Conv2D`, every `Dense`, optionally `BatchNormalization`'s `gamma/beta`).
+Per-layer constructor argument: `kernel_regularizer=l2(lambda)`. Modify every layer that has learnable weights (every `Conv2D`, every `Dense`, optionally `BatchNormalization`'s `gamma/beta`).
 
 ```python
 from tensorflow.keras.regularizers import l2
 
-L2 = 1e-3  # the only knob you really tune
+L2 = 1e-3  # the only *tunable* knob
 
 x = Conv2D(64, (3, 3),
            kernel_regularizer=l2(L2),
@@ -42,15 +46,14 @@ x = Conv2D(64, (3, 3),
 x = Dense(256, kernel_regularizer=l2(L2))(x)
 ```
 
-**What to watch.**
 - **`lambda` (the strength).** Start at **`1e-4`** for a small model, **`1e-3`** for a deeper one. Bigger λ → stronger pull toward zero → more underfitting risk. Tune in factors of 10.
-- **Apply it everywhere or nowhere.** If half your layers have it and half don't, the regularized layers carry an unfair share of the penalty and learning gets weird.
-- **It only affects training.** No code changes at inference time — `model.predict` ignores regularizer terms.
-- **`model.compile(..., loss=...)` reports the combined loss** (data loss + L2 penalty), so don't be surprised if your *training* loss is a bit higher than validation loss in the first few epochs — validation loss doesn't include the penalty.
-- **Don't double-regularize.** If you already use heavy Dropout + BatchNorm, an aggressive L2 on top can stall learning. Treat the three as a budget you spend together.
-- **Bias terms.** Use `bias_regularizer=l2(...)` only if you have a specific reason; the standard recipe is "regularize kernels, leave biases alone."
+- **Apply it everywhere or nowhere.** 
+- **It only affects training.** 
+- **`model.compile(..., loss=...)` reports the combined loss** 
+- **Don't double-regularize.** heavy Dropout + BatchNorm, an aggressive L2 on top can stall learning. 
+- **Bias terms.** Use `bias_regularizer=l2(...)` only for specific reason; "regularize kernels, leave biases alone."
 
-**How you'll know it's working.** The train/val accuracy gap should shrink (less overfitting). If your train accuracy also drops noticeably, λ is too large.
+The train/val accuracy gap should shrink (less overfitting). If train accuracy also drops noticeably, λ is too large.
 
 ---
 
@@ -98,14 +101,10 @@ x = Dense(256, kernel_regularizer=l2(L2))(x)
    This second style is nicer because the model file *contains* the preprocessing — no risk of forgetting to normalize at inference.
 
 **What to watch.**
-- **Augment training only, never validation or test.** The val/test pipeline should do *exactly* the same deterministic preprocessing the model expects (here: `BGR→RGB` + `/255`) and nothing else. If you augment validation you can't compare runs.
+- **Augment training only, never validation or test.** The val/test pipeline should do *exactly* the same deterministic preprocessing the model expects (here: `BGR→RGB` + `/255`) and nothing else. 
 - **Train/inference preprocessing parity.** This is the bug that bit V3. Whatever the training generator does (e.g. `rescale=1./255`), the submission code must do the same. If you go with preprocessing layers (`Rescaling`, `RandomFlip`, etc.), this is automatic.
-- **Pick augmentations that preserve the label.** Flips and rotations: yes. Heavy color jitter or huge crops: think twice — they can move tumor pixels out of the central 32×32 region the label is defined on.
-- **Augmentation makes each epoch "easier" for the network to overfit but harder to *fit*.** Expect training accuracy to plateau lower and val accuracy to track training more closely. That gap-closing is the goal.
-- **Each epoch sees ~`steps_per_epoch * batch_size` augmented samples.** With augmentation on you generally want **more epochs**, not fewer, because the effective dataset is larger.
+Expect training accuracy to plateau lower and val accuracy to track training more closely. That gap-closing is the goal. With augmentation on you generally want **more epochs**, not fewer, because the effective dataset is larger.
 - **Inspect what you're feeding the model.** Always pull one batch out of the generator and `plt.imshow` a few — augmentation bugs (wrong color channel, all-black images, label/image desync) are obvious visually and silent in metrics.
-
-**How you'll know it's working.** The train/val gap shrinks (same signal as L2). If val accuracy *drops*, your augmentations are too aggressive — pull `rotation_range`, `zoom_range`, etc. down.
 
 ---
 

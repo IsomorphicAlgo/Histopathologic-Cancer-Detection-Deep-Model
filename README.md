@@ -15,27 +15,58 @@ The dataset comes from the [Histopathologic Cancer Detection](https://www.kaggle
 - Each image is labeled as either containing cancer tissue (1) or not (0)
 - A positive label indicates that the center 32x32px region of a patch contains at least one pixel of tumor tissue
 
-## Project Structure
-The project follows these key steps:
-1. **Data Exploration and Preparation**
-   - Loading and examining the dataset
-   - Visualizing sample images and their distributions
-   - Analyzing RGB channel distributions between positive and negative samples
-   
-2. **Model Development**
-   - **Initial Model**: A simple CNN with a single convolutional layer, pooling layer, and dense layers
-   - **Advanced Model**: A deeper architecture inspired by VGG-16, with multiple convolutional blocks, batch normalization, and regularization techniques
-   
-3. **Training and Optimization**
-   - Data augmentation to improve generalization
-   - Implementation of learning rate scheduling
-   - Use of callbacks for early stopping and model checkpointing
-   - Hyperparameter tuning to improve performance
+## Repository layout
 
-4. **Evaluation and Results**
-   - Achieved validation accuracy of approximately 80-85%
-   - Consistent performance between training and validation sets
-   - Final Kaggle submission score of 0.893
+```
+Histopathologic-Cancer-Detection-Deep-Model/
+├── README.md
+├── requirements.txt
+├── New Research.md
+├── Histopathologic Cancer Detection Deep Model.ipynb          # Original (V1) notebook
+├── Histopathologic Cancer Detection Deep Model - V3.ipynb
+├── Histopathologic Cancer Detection Deep Model - V4.ipynb
+├── Histopathologic Cancer Detection Deep Model - V5.ipynb
+├── training_history.csv          # Per-epoch metrics from the latest notebook run (CSVLogger)
+├── training_history.npy          # Same history saved as a NumPy array (if generated)
+├── model_checkpoints/
+│   └── best_model_v4.keras       # Best checkpoint from V4 training (by val_accuracy)
+├── logs/
+│   └── validation/               # TensorBoard event files
+└── Data/
+    ├── train_labels.csv          # Competition labels (id, label) for training images
+    ├── train_labels_old.csv      # Earlier copy of the label file
+    ├── sample_submission.csv     # Kaggle submission format template
+    ├── submission.csv            # Primary Kaggle submission output
+    ├── submission0.csv           # Earlier submission attempts
+    ├── submission1.csv
+    ├── model_training_performance.csv  # Versioned training log (see below)
+    ├── Results scratchbook.docx  # Informal results notes
+    ├── train/                    # Training .tif images (local only; gitignored)
+    └── test/                     # Test .tif images (local only; gitignored)
+```
+
+### File purposes
+
+| Path | Purpose |
+|------|---------|
+| `Histopathologic Cancer Detection Deep Model*.ipynb` | Iterative notebook versions (V1 original → V3 → V4 → V5). Each documents architecture, training, evaluation, and submission for that experiment. |
+| `Data/train_labels.csv` | Maps image IDs to binary labels (0 = no tumor in center patch, 1 = tumor present). Used to build training/validation splits. |
+| `Data/train/`, `Data/test/` | Kaggle competition image folders. Not committed to git because of size; download from the competition page and place here. |
+| `Data/sample_submission.csv` | Empty submission template from Kaggle (`id`, `label` columns). |
+| `Data/submission*.csv` | Model predictions on the test set, formatted for Kaggle upload. |
+| `Data/model_training_performance.csv` | **Cross-version training registry.** One block per model version: `epoch` rows (train/val accuracy and loss each epoch) plus a `summary` row (hyperparameters, best metrics, classification report fields, notebook reference). Append V5, V6, etc. as new versions are trained. V1–V3 are not recorded yet. |
+| `training_history.csv` | Raw epoch log from the **current** notebook’s `CSVLogger` callback. Overwritten on each run; copy or summarize into `Data/model_training_performance.csv` when a version is finalized. |
+| `model_checkpoints/` | Saved Keras models from `ModelCheckpoint` during training. |
+| `logs/` | TensorBoard logs for loss/accuracy curves and histograms. |
+| `New Research.md` | Research notes, planned experiments, and trial log for future work. |
+| `requirements.txt` | Python dependencies for running the notebooks. |
+
+## Workflow
+The project follows these key steps:
+1. **Data exploration and preparation** — load labels and images, visualize samples, compare RGB distributions between classes.
+2. **Model development** — from a simple CNN (V1) to a regularized VGG-style architecture (V3+).
+3. **Training and optimization** — augmentation, L2 regularization, learning-rate scheduling, early stopping, and checkpointing.
+4. **Evaluation and submission** — validation metrics, ROC/classification reports, and Kaggle `submission.csv` generation.
 
 ## Technical Implementation
 The project utilizes:
@@ -73,8 +104,11 @@ The implementation of advanced techniques like data augmentation, batch normaliz
 
 
 ## Changelog
-05-24-2026
-- Updated ReadME.
-- Altered filestructure so there is a /Data folder.
-   - Inserted the CSVs and Excel docs there. 
-   - Corrected filepaths within the ipynb
+
+**05-27-2026**
+- Added `Data/model_training_performance.csv` — versioned training performance log (V4 recorded; future versions append here).
+- Documented repository layout and file purposes in this README.
+
+**05-24-2026**
+- Updated README.
+- Added a `Data/` folder for CSVs and docs; corrected paths in the notebooks.

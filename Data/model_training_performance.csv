@@ -1,0 +1,17 @@
+version,record_type,epoch,train_accuracy,train_loss,val_accuracy,val_loss,train_samples,val_samples,batch_size,epochs_planned,epochs_completed,best_epoch_val_accuracy,best_val_accuracy,best_val_loss_at_best_acc,best_epoch_val_loss,best_val_loss,best_val_accuracy_at_best_loss,early_stopping_restored_epoch,eval_val_accuracy,eval_val_loss,val_roc_auc,precision_negative,recall_negative,f1_negative,precision_positive,recall_positive,f1_positive,macro_f1,weighted_f1,train_val_acc_gap_at_best_val_acc,model_architecture,l2_reg,augmentation,optimizer,lr_schedule,initial_learning_rate,dropout_conv,dropout_dense,checkpoint_monitor,early_stopping_monitor,early_stopping_patience,notebook_file,training_date,notes
+V4,epoch,1,0.7949860095977783,1.6087265014648438,0.7890681624412537,1.470064401626587,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,2,0.84375,1.3331583738327026,0.7904772758483887,1.4665532112121582,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,3,0.8236868381500244,1.0757739543914795,0.8115909099578857,0.8864709734916687,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,4,0.78125,0.8320212364196777,0.8107954263687134,0.887043833732605,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,5,0.8383696675300598,0.7863811254501343,0.8233181834220886,0.8093019127845764,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,6,0.8125,0.8632708191871643,0.8253636360168457,0.8031547665596008,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,7,0.8387560248374939,0.6879606246948242,0.8219772577285767,0.6719477772712708,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,8,0.90625,0.5572912693023682,0.8196818232536316,0.6770690083503723,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,9,0.8540241122245789,0.5663122534751892,0.8136590719223022,0.6584315299987793,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,10,0.78125,0.5862092971801758,0.8153409361839294,0.654768705368042,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,11,0.8674852848052979,0.5097594261169434,0.7907954454421997,0.7424010038375854,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,12,0.90625,0.4127245843410492,0.7906363606452942,0.7434446215629578,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,13,0.8730481863021851,0.4882979393005371,0.793113648891449,0.7746491432189941,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,14,0.875,0.5655971765518188,0.7922272682189941,0.7752766609191895,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,epoch,15,0.8677353262901306,0.4941900372505188,0.7711591124534607,0.7255194187164307,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+V4,summary,,,,,,176020,44005,32,15,15,6,0.825364,0.8031547665596008,10,0.654768705368042,0.8153409361839294,10,0.8153,0.6548,,0.85,0.84,0.84,0.77,0.78,0.77,0.81,0.82,-0.012864,"VGG-style CNN (32-64-128 filters, BN, L2, Dropout)",0.001,rotation/shift/shear/zoom/flip + rescale,Adam,CosineDecayRestarts,0.0001,0.4,0.5,val_accuracy,val_loss,10,Histopathologic Cancer Detection Deep Model - V4.ipynb,2026-05-24,Full dataset (~220k train). ModelCheckpoint saved best val_accuracy at epoch 6; EarlyStopping restored best val_loss weights from epoch 10 for final evaluation. val_roc_auc was plotted but not logged to stdout.
