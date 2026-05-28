@@ -13,3 +13,13 @@ data/train/
 data/test/
 Data/train/
 Data/test/
+
+# Model weights (too large / unstable for git push)
+model_checkpoints/
+*.h5
+*.keras
+cancer_detection_model.keras
+
+# Full submission outputs — regenerate from notebook
+submission.csv
+Data/submission.csv
