@@ -123,12 +123,67 @@ That gives you four rows in the trial-log table and an honest answer to "did eac
 
 ## Results of trials
 
-Log outcomes: configuration, dataset slice, metrics, and short conclusions so you can compare runs later.
+What V6 actually did
+V6	V5	V4
+Best val accuracy (checkpoint)
+79.5% (epoch 3) 82.2% (epoch 3) 82.5% (epoch 6)
+Eval val accuracy (restored weights)
+79.5% 82.2% 81.5%
+Val ROC AUC
+0.886 0.901 —
+Train–val gap at best checkpoint
+~3% ~0% ~-1%
+Positive recall
+60% 74% 78%
 
-| Trial / date | Idea / setup | Key metrics | Notes |
-|--------------|--------------|-------------|-------|
-| | | | |
 
-### Trial log (free form)
+### AI Assessment
 
-- 
+In terms of augmentation, early peak, then collapse. the model kept fitting the training stream while validation got worse. 
+Where to go next
+1. Fix the training schedule (do this before more architecture changes)
+CosineDecayRestarts uses first_decay_steps = steps_per_epoch, so the LR restarts every epoch. The big val drop around epoch 9 lines up with that pattern plus overfitting.
+
+V7 experiment: same model, but one of:
+
+Constant LR 1e-4 for 10–15 epochs, or
+ReduceLROnPlateau on val_loss (factor 0.5, patience 2–3), or
+Cosine decay over the full run (no restarts): e.g. CosineDecay(steps_per_epoch * 20)
+Also align callbacks: save and restore on the same metric (val_loss or val_auc), not checkpoint on val_accuracy and early-stop on val_loss.
+
+This is the highest-ROI change because V6’s best weights were already at epoch 3–4.
+
+2. Address class imbalance / threshold
+With 60% positive recall, try on the same V6 architecture:
+
+class_weight in model.fit (weights inversely proportional to class frequency), or
+Keep training as-is but pick threshold from the validation ROC (often not 0.5 for imbalanced or asymmetric-cost problems)
+Quick check after training: plot precision–recall and try thresholds that trade a few points of accuracy for much better recall.
+
+3. Train longer only after the LR fix
+Your research notes say augmented training usually wants more epochs, not fewer. V6 peaked at epoch 3 and then unraveled — so “more epochs” only helps after you stop the post-epoch-4 collapse.
+
+Reasonable V7b: 20–25 epochs, early stopping patience 5 (not 10), monitor val_loss.
+
+4. Tune augmentation strength (not the pipeline)
+Keep augmentation in the model (that part is working as designed). Next ablation:
+
+Run	Change
+V7a
+LR fix only (baseline)
+V7b
+Stronger Keras aug closer to V5: e.g. RandomRotation(0.17), add RandomTranslation(0.1), keep flips
+V7c
+Mild aug (current V6) + l2_reg=1e-3 (V4’s stronger regularization)
+Avoid stacking generator aug on top of layer aug.
+
+### Plan for V7:
+
+We will begin V7 by following the suggestion of 3 subpaths, all coallescing on much needed upgrades for overall performance. 
+To begin subpath 7a we will alter the recall.  Because of the imbalance we will not log the val_auc until compile. 
+We will also stick to a solid LR 1e-4
+
+
+V7b:
+Cropping2D(cropping=((32, 32), (32, 32)))
+right at the input slice of a secondary branch of your model
