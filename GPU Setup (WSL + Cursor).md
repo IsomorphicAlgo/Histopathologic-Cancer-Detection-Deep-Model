@@ -13,12 +13,27 @@ because TensorFlow dropped native-Windows GPU support after v2.10.
 3. **Open the project folder** inside WSL:
    `/mnt/c/Users/Belgarath/Desktop/DTSA5511 Deep Learning/Week 3/Histopathologic Cancer Detection Deep Model`
 4. Open the notebook (e.g. `Histopathologic Cancer Detection Deep Model - V7b.ipynb`).
-5. **Select the kernel** (top-right of the notebook): choose **`Python (tf-gpu)`**.
+5. **Select the kernel** (top-right of the notebook). Cursor’s wording varies; use **one** of these:
+
+   **A — Recommended (always works): Python interpreter**  
+   - Click the kernel name (or **Select Kernel**).  
+   - Choose **Python Environments** (or **Python**).  
+   - Pick **`~/tf-gpu/bin/python`** if it appears, or **Enter interpreter path…** / **Find…** and paste the output of this (run in the same WSL terminal):
+     ```bash
+     echo ~/tf-gpu/bin/python
+     ```
+     Example: `/home/yourname/tf-gpu/bin/python`  
+   - You do **not** need to type `~/.local/share/jupyter/kernels/...` anywhere; that folder is only how Jupyter stores the **`Python (tf-gpu)`** kernelspec.
+
+   **B — Jupyter kernelspec by name**  
+   - **Select Another Kernel…** → **Jupyter Kernel…** (not “Jupyter Server” unless you intentionally run a remote server).  
+   - Look for **`Python (tf-gpu)`**.
+
 6. Run the GPU-check cell (see below). You should see one GPU listed. Done — train away.
 
-> If `Python (tf-gpu)` doesn't appear, click the kernel picker → **Select Another Kernel**
-> → **Jupyter Kernel** → refresh. The kernel is registered at
-> `~/.local/share/jupyter/kernels/tf-gpu`.
+> **If nothing GPU-related appears:** you are probably not in a **WSL** window. Check the **bottom-left** of Cursor for **`WSL: Ubuntu-22.04`** (or similar). If it says **Windows** instead, press `Ctrl+Shift+P` → **WSL: Reopen Folder in WSL**, open this folder again, then repeat step 5. Kernels under `~/.local/...` in WSL are invisible to a Windows-only workspace.
+
+> If **`Python (tf-gpu)`** still never appears, register it once inside WSL (see “Kernel missing” in the table below), then use **A** or **B** again.
 
 ---
 
@@ -42,19 +57,45 @@ Expected output:
 |---|---|
 | No `WSL: Ubuntu-22.04` badge | Install the **WSL** extension in Cursor, then retry `WSL: Connect to WSL`. |
 | `nvidia-smi` works on Windows but not in WSL | Update the **Windows** NVIDIA driver; never install a Linux GPU driver inside WSL. |
-| `GPUs: []` **and** "Cannot dlopen some GPU libraries" | The CUDA libs aren't on the loader path. They must be in the kernel's `LD_LIBRARY_PATH` (see "Kernel fix" below). Re-run `~/fix-tf-kernel.sh`. |
+| `GPUs: []` **and** "Cannot dlopen some GPU libraries" | The CUDA libs aren't on the loader path (usually only `libcusolver.so.11` fails). Run the one-time `ldconfig` fix in **"The real fix"** below. |
 | `GPUs: []` but no dlopen error | Wrong kernel selected — pick **`Python (tf-gpu)`**, not plain `Python 3.x`. |
 | Kernel missing | In WSL: `~/tf-gpu/bin/python3 -m pip install ipykernel && ~/tf-gpu/bin/python3 -m ipykernel install --user --name tf-gpu --display-name "Python (tf-gpu)"`, then re-run the kernel fix below. |
 | WSL slow / won't start | In PowerShell: `wsl --shutdown`, then reconnect. |
 
 ---
 
-## Kernel fix (why the GPU was invisible at first)
+## The real fix (loader-level, works for ANY kernel/interpreter) ✅ RECOMMENDED
 
-TensorFlow 2.21 in a venv does **not** automatically put the pip-installed CUDA
-libraries on the loader path, so the notebook kernel reported `GPUs: []` with a
-"Cannot dlopen some GPU libraries" warning. The fix bakes `LD_LIBRARY_PATH` into the
-kernel definition so Cursor's kernel always finds them.
+Symptom: right interpreter selected (`~/tf-gpu/bin/python`), but still
+`GPUs: []` with **"Cannot dlopen some GPU libraries"**. With `TF_CPP_VMODULE=dso_loader=2`
+the log shows the real culprit — only **`libcusolver.so.11`** fails to load. It exists,
+but the loader can't resolve *its* sibling CUDA dependencies because `LD_LIBRARY_PATH`
+is locked when the process starts (so setting it inside a notebook cell is too late).
+
+Permanent fix — register the pip-installed CUDA dirs with the system loader **once**
+(needs your password, one time):
+
+```bash
+ls -d ~/tf-gpu/lib/python3.10/site-packages/nvidia/*/lib | sudo tee /etc/ld.so.conf.d/tf-gpu-nvidia.conf && sudo ldconfig
+```
+
+Verify:
+
+```bash
+ldconfig -p | grep -E 'libcusolver|libcudnn|libcublas'
+```
+
+After this, **restart the kernel**. The GPU is found regardless of whether you pick the
+`Python (tf-gpu)` kernel or just the `~/tf-gpu/bin/python` interpreter. Re-run the
+command after reinstalling/upgrading TensorFlow (paths may change).
+
+---
+
+## Older kernel fix (baking LD_LIBRARY_PATH into the kernelspec)
+
+This also works but ONLY when you select the **`Python (tf-gpu)`** kernel (not the raw
+interpreter), because it lives in the kernel's `env` block. The loader-level fix above
+is preferred since it doesn't depend on which kernel you pick.
 
 A helper script lives at `~/fix-tf-kernel.sh` in WSL. Re-run it any time you
 reinstall/upgrade TensorFlow or the kernel stops seeing the GPU:

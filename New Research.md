@@ -186,4 +186,5 @@ We will also stick to a solid LR 1e-4
 
 V7b:
 Cropping2D(cropping=((32, 32), (32, 32)))
+Using padding='same' to avoid data shrinkage
 right at the input slice of a secondary branch of your model
