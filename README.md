@@ -26,6 +26,10 @@ Histopathologic-Cancer-Detection-Deep-Model/
 ├── Histopathologic Cancer Detection Deep Model - V3.ipynb
 ├── Histopathologic Cancer Detection Deep Model - V4.ipynb
 ├── Histopathologic Cancer Detection Deep Model - V5.ipynb
+├── Histopathologic Cancer Detection Deep Model - V6.ipynb
+├── Histopathologic Cancer Detection Deep Model - V7a.ipynb
+├── Histopathologic Cancer Detection Deep Model - V7b.ipynb
+├── Histopathologic Cancer Detection Deep Model - V7c.ipynb     # Best model: two-stream CNN
 ├── training_history.csv          # Per-epoch metrics from the latest notebook run (CSVLogger)
 ├── training_history.npy          # Same history saved as a NumPy array (if generated)
 ├── model_checkpoints/
@@ -68,6 +72,25 @@ The project follows these key steps:
 3. **Training and optimization** — augmentation, L2 regularization, learning-rate scheduling, early stopping, and checkpointing.
 4. **Evaluation and submission** — validation metrics, ROC/classification reports, and Kaggle `submission.csv` generation.
 
+## Model Progression and Results
+
+The project was developed as a disciplined sequence of controlled experiments. Each version isolated a single change so its effect on generalization could be attributed cleanly. The table below summarizes the trajectory; AUC is the competition metric, so Kaggle scores are reported as ROC AUC.
+
+| Version | Key change | Val acc | Val AUC | Kaggle public / private AUC |
+|---------|------------|---------|---------|-----------------------------|
+| V4 | VGG-style CNN + augmentation + L2 | 82.5% | — | — |
+| V5 | Tuned augmentation | 82.2% | 0.901 | — |
+| V6 | In-model Keras augmentation layers | 79.5% | 0.886 | — |
+| V7a | Stabilized schedule (constant LR 1e-4) | 75.2% | 0.893 | 0.8980 / 0.8715 |
+| V7b | Center-crop-only input (32×32) | 83.6% | 0.906 | 0.8786 / 0.8414 |
+| V7c | **Two-stream CNN (local 32×32 + global 96×96)** | **89.6%** | **0.969** | **0.9353 / 0.9188** |
+
+**Engineering narrative.** Versions V4–V6 plateaued near 0.90 validation AUC, with recurring symptoms of validation instability and early-epoch overfitting under aggressive augmentation and a restart-based learning-rate schedule. V7 split the remediation into three targeted experiments: V7a stabilized the training schedule (constant learning rate, AUC-based checkpointing and early stopping), V7b tested an input that cropped to the labeled center region, and V7c introduced a two-stream architecture.
+
+The center-crop hypothesis (V7b) underperformed: despite higher validation accuracy than V7a, it generalized worse on the held-out Kaggle test set (private AUC 0.84 vs 0.87), indicating that discarding peripheral tissue context removed useful signal. V7c resolved this by running two parallel convolutional streams — a **local branch** over the center 32×32 crop (nuclear morphology) and a **global branch** over the full 96×96 patch (surrounding tissue context) — each reduced via global average pooling and concatenated before the dense head.
+
+V7c is the strongest model by a clear margin. It is the first version to break past the 0.90 AUC plateau, reaching a Kaggle public AUC of **0.9353** and private AUC of **0.9188**, with a near-zero train–validation accuracy gap (≈ −0.002) indicating the gain came from improved representational capacity rather than overfitting. The small, expected gap between validation AUC (0.969) and test AUC (~0.92) confirms the result is robust. The principal remaining limitation is positive-class recall (0.71 at a 0.5 decision threshold against 0.98 precision); given the high AUC, threshold calibration from the validation ROC is the recommended next step for any deployment that requires a hard decision.
+
 ## Technical Implementation
 The project utilizes:
 - **TensorFlow/Keras** for model building and training
@@ -77,13 +100,15 @@ The project utilizes:
 - **Scikit-learn** for data splitting and evaluation metrics
 
 ### Model Architecture
-The final model architecture includes:
-- Multiple convolutional blocks with increasing filter sizes (32 → 64 → 128)
+The architecture evolved from a single VGG-style stack (V4–V7b) to a two-stream design (V7c, best performing). Shared building blocks across all versions:
+- Convolutional blocks with increasing filter sizes (32 → 64 → 128)
 - Batch normalization after each convolutional layer
 - Max pooling layers to reduce dimensionality
 - Dropout layers to prevent overfitting
 - L2 regularization to improve generalization
-- Dense layers with appropriate activation functions
+- In-model augmentation and rescaling so training/inference preprocessing stay in parity
+
+The best model (V7c) runs two parallel streams over a shared augmentation/rescaling head — a local branch over the center 32×32 crop and a global branch over the full 96×96 patch — each reduced by global average pooling to a 128-d vector, concatenated (256-d) and passed to the dense classification head.
 
 ## Key Findings
 - Deep learning models can effectively identify cancer in histopathologic images
@@ -104,6 +129,11 @@ The implementation of advanced techniques like data augmentation, batch normaliz
 
 
 ## Changelog
+
+**05-29-2026**
+- Documented the full V6 → V7a/V7b/V7c experiment progression and added a Model Progression and Results section.
+- Recorded Kaggle ROC AUC scores: V7a (0.8980 / 0.8715), V7b (0.8786 / 0.8414), V7c (0.9353 / 0.9188 public / private).
+- V7c (two-stream local + global CNN) established as the best-performing model; updated the Model Architecture section accordingly.
 
 **05-27-2026**
 - Added `Data/model_training_performance.csv` — versioned training performance log (V4 recorded; future versions append here).

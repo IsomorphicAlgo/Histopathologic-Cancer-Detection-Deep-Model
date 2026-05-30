@@ -188,3 +188,28 @@ V7b:
 Cropping2D(cropping=((32, 32), (32, 32)))
 Using padding='same' to avoid data shrinkage
 right at the input slice of a secondary branch of your model
+
+
+AI Assessment:
+
+validation metrics prove this crop optimization is working well:
+
+Validation AUC: 0.8933
+
+Validation Accuracy: 75.20%
+
+An AUC near 0.90 indicates the model has strong discriminative power. However, notice the gap during early training epochs:
+
+Epoch 1: Training Accuracy was 75.61%, but Validation Accuracy dropped to 58.02%.
+
+Epoch 2: Training Accuracy increased to 78.89%, while Validation Accuracy remained at 53.71%.
+
+This severe divergence in accuracy alongside fluctuating validation loss (0.8777 to 1.0249) indicates your model experienced unstable validation behavior early on. This is common when using a tightly cropped focus because the model must learn subtle sub-cellular features (like nuclei boundaries) without any wider structural tissue context.
+
+
+Trial 2 on V7b:
+Also combinging prior plan for 7c.
+
+New V7C:
+Instead of entirely deleting the outside $64\text{ px}$ of tissue context, top-performing approaches often feed a center-cropped image through one sequence of convolutional layers (to focus on nuclear details), while feeding the full $96 \times 96$ image through a parallel sequence of convolutional layers (to monitor surrounding tissue density).
+
